@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: devtasks-mssql
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Password123!}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD:-Password123!}\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - devtasks-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: devtasks-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DB_HOST: mssql
+      DB_PORT: 1433
+      DB_USER: sa
+      DB_PASSWORD: "${MSSQL_SA_PASSWORD:-Password123!}"
+      DB_NAME: "${DB_NAME:-DevTasksDB}"
+      DB_SYNCHRONIZE: "true"
+      JWT_SECRET: "${JWT_SECRET:-dev-tasks-super-secret-jwt-key-2026}"
+      CORS_ORIGIN: "http://localhost:3000"
+    ports:
+      - "3001:3001"
+    depends_on:
+      mssql:
+        condition: service_healthy
+    networks:
+      - devtasks-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: devtasks-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      HOST: "0.0.0.0"
+      NUXT_PUBLIC_API_BASE: "http://localhost:3001/api"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - devtasks-net
+
+volumes:
+  mssql_data:
+    driver: local
+
+networks:
+  devtasks-net:
+    driver: bridge

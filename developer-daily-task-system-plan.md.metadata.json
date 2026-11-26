@@ -1,0 +1,6 @@
+{
+  "summary":  "ปรับ Primary Key (PK) ของทุกตารางในระบบเป็นตัวเลข (int / bigint identity) พร้อมคงค่า code เป็นตัวพิมพ์เล็ก (lowercase) สำหรับสถานะและความสำคัญ",
+  "updatedAt":  "2026-11-26T02:34:39.220000400Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
